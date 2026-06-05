@@ -7,12 +7,12 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:#0a0a0f;color:#e8e8f0;font-family:'Courier New',monospace;min-height:100vh;}
-.app{display:flex;flex-direction:column;align-items:center;padding:24px 12px 40px;}
+.app{display:flex;flex-direction:column;align-items:center;padding:24px 40px 40px;}
 h1{font-size:28px;font-weight:700;background:linear-gradient(135deg,#e8e8f0,#7c6fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:22px;}
-.tabs{display:flex;border-bottom:1px solid #1a1a28;margin-bottom:16px;width:100%;max-width:640px;}
+.tabs{display:flex;border-bottom:1px solid #1a1a28;margin-bottom:16px;width:100%;max-width:960px;}
 .tab{padding:8px 16px;border:none;background:transparent;color:#444;font-family:'Courier New',monospace;font-size:12px;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
 .tab.active{color:#7c6fff;border-bottom-color:#7c6fff;}
-.card{background:#0f0f18;border:1px solid #1e1e2e;border-radius:12px;padding:18px 20px;width:100%;max-width:640px;margin-bottom:10px;}
+.card{background:#0f0f18;border:1px solid #1e1e2e;border-radius:12px;padding:22px 28px;width:100%;max-width:960px;margin-bottom:10px;}
 .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
 .badge{font-size:10px;padding:2px 8px;border-radius:20px;}
 .play-btn{width:50px;height:50px;border-radius:50%;border:2px solid #7c6fff;background:transparent;color:#7c6fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
@@ -46,7 +46,7 @@ h1{font-size:28px;font-weight:700;background:linear-gradient(135deg,#e8e8f0,#7c6
 .filter-btn.active{border-color:#7c6fff;color:#7c6fff;background:#7c6fff15;}
 .mode-btn{padding:7px 16px;border:1px solid #2a2a3a;background:transparent;color:#555;font-family:'Courier New',monospace;font-size:12px;cursor:pointer;border-radius:8px;margin-right:6px;transition:all .15s;}
 .mode-btn.active{background:#1a1a30;border-color:#7c6fff;color:#9d8fff;}
-.kb{background:#0c0c18;border:1px solid #1e1e2e;border-radius:12px;padding:10px 8px 8px;width:100%;max-width:640px;user-select:none;}
+.kb{background:#0c0c18;border:1px solid #1e1e2e;border-radius:12px;padding:10px 8px 8px;width:100%;max-width:960px;user-select:none;}
 .kb-row{display:flex;justify-content:center;margin-bottom:3px;}
 .key{min-width:32px;height:40px;margin:2px;border-radius:6px;border:1px solid #2a2a3a;background:#141420;color:#c8c8e0;font-family:'Courier New',monospace;font-size:13px;cursor:pointer;transition:transform .07s,background .07s;display:flex;align-items:center;justify-content:center;user-select:none;}
 .key:active{background:#2a2a44;transform:scale(0.93);}
@@ -62,8 +62,8 @@ h1{font-size:28px;font-weight:700;background:linear-gradient(135deg,#e8e8f0,#7c6
 .hist-item{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#0f0f18;border-radius:6px;margin-bottom:5px;font-size:12px;}
 .stat-cards{display:flex;gap:10px;margin-bottom:16px;}
 .stat-card{flex:1;background:#0f0f18;border:1px solid #1e1e2e;border-radius:8px;padding:12px;text-align:center;}
-.pdf-label{font-size:11px;color:#555;width:100%;max-width:640px;margin-bottom:8px;padding:5px 10px;background:#0f0f18;border-radius:5px;border-left:2px solid #7dd3fc44;}
-.controls{display:flex;align-items:center;margin-bottom:12px;width:100%;max-width:640px;flex-wrap:wrap;gap:4px;}
+.pdf-label{font-size:11px;color:#555;width:100%;max-width:960px;margin-bottom:8px;padding:5px 10px;background:#0f0f18;border-radius:5px;border-left:2px solid #7dd3fc44;}
+.controls{display:flex;align-items:center;margin-bottom:12px;width:100%;max-width:960px;flex-wrap:wrap;gap:4px;}
 .full-display{background:#080810;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#444;}
 .full-display-label{font-size:10px;color:#2a2a3a;margin-bottom:3px;}
 .rec-btn{padding:8px 16px;border:1px solid #3a3a5a;border-radius:8px;background:transparent;color:#888;font-family:'Courier New',monospace;font-size:12px;cursor:pointer;margin-right:8px;margin-bottom:4px;}
@@ -71,8 +71,8 @@ h1{font-size:28px;font-weight:700;background:linear-gradient(135deg,#e8e8f0,#7c6
 .rec-btn.danger{background:#f87171;color:#fff;border-color:#f87171;}
 .word-tag{display:inline-block;padding:3px 9px;border-radius:5px;font-size:13px;margin:2px;}
 .empty-msg{text-align:center;padding:40px;color:#333;font-size:13px;}
-.pdf-layout{display:flex;gap:10px;width:100%;max-width:900px;}
-.pdf-sidebar{width:180px;flex-shrink:0;display:flex;flex-direction:column;gap:3px;}
+.pdf-layout{display:flex;gap:10px;width:100%;max-width:1100px;}
+.pdf-sidebar{width:220px;flex-shrink:0;display:flex;flex-direction:column;gap:3px;}
 .pdf-sec-btn{padding:8px 10px;border:1px solid #1e1e2e;border-radius:6px;background:transparent;color:#555;font-family:"Courier New",monospace;font-size:11px;cursor:pointer;text-align:left;transition:all .15s;line-height:1.3;word-break:break-word;}
 .pdf-sec-btn.active{background:#1a1a30;border-color:#7c6fff;color:#9d8fff;}
 .pdf-sec-btn:hover:not(.active){border-color:#333;color:#888;}
@@ -83,7 +83,7 @@ h1{font-size:28px;font-weight:700;background:linear-gradient(135deg,#e8e8f0,#7c6
 <div class="app" id="app">
   <h1>Dictation Studio</h1>
   <div class="tabs" id="tabs"></div>
-  <div id="content" style="width:100%;max-width:640px;display:flex;flex-direction:column;align-items:center;"></div>
+  <div id="content" style="width:100%;max-width:960px;display:flex;flex-direction:column;align-items:center;"></div>
 </div>
 <script>
 // ── Data ──
@@ -185,7 +185,7 @@ function renderContent() {
 function renderMistakes() {
   if(!state.mistakes.length) return `<div class="empty-msg">まだミスはありません 🎉</div>`;
   return state.mistakes.slice().reverse().map(m=>`
-    <div class="mistake-item" style="width:100%;max-width:640px;">
+    <div class="mistake-item" style="width:100%;max-width:960px;">
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
         <span style="color:#f87171;font-size:15px;font-weight:600;">${m.correct}</span>
         <span style="color:#333;font-size:11px;">✗ ${m.times}回</span>
@@ -206,12 +206,12 @@ function renderStats() {
       <span style="color:#444;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${h.text}</span>
       <span style="color:${h.score>=80?"#4ade80":h.score>=50?"#facc15":"#f87171"};">${h.score}点</span>
     </div>`).join("");
-  return `<div style="width:100%;max-width:640px;"><div class="stat-cards">${cards}</div>${rows}</div>`;
+  return `<div style="width:100%;max-width:960px;"><div class="stat-cards">${cards}</div>${rows}</div>`;
 }
 
 function renderSettings() {
   const key = getApiKey();
-  return `<div style="width:100%;max-width:640px;">
+  return `<div style="width:100%;max-width:960px;">
     <div style="background:#0f0f18;border:1px solid #1e1e2e;border-radius:12px;padding:20px;margin-bottom:10px;">
       <div style="font-size:13px;color:#4ade80;margin-bottom:10px;font-weight:600;">✓ 翻訳（MyMemory）</div>
       <div style="font-size:11px;color:#555;line-height:1.8;">
@@ -311,7 +311,7 @@ function renderPractice(el) {
     const cur2=sents2[state.idx%Math.max(sents2.length,1)];
     const mainHtml=cur2?buildCardHtml(cur2,sents2):`<div class="empty-msg">文章がありません</div>`;
     el.innerHTML=html+`
-      <div style="font-size:11px;color:#555;margin-bottom:8px;padding:4px 8px;background:#0f0f18;border-radius:5px;border-left:2px solid #7dd3fc44;width:100%;max-width:900px;">📄 ${state.pdfTitle}</div>
+      <div style="font-size:11px;color:#555;margin-bottom:8px;padding:4px 8px;background:#0f0f18;border-radius:5px;border-left:2px solid #7dd3fc44;width:100%;max-width:1100px;">📄 ${state.pdfTitle}</div>
       <div class="pdf-layout">
         <div class="pdf-sidebar">
           <div style="font-size:10px;color:#333;margin-bottom:6px;letter-spacing:.08em;padding-left:2px;">SECTIONS</div>
