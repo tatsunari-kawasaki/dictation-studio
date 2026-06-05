@@ -122,21 +122,22 @@ function getApiKey(){ return localStorage.getItem("ds_deepl_key")||""; }
 function saveApiKey(k){ localStorage.setItem("ds_deepl_key",k.trim()); }
 
 async function doTranslate(text) {
-  const key = getApiKey();
-  if(!key) return "（DeepL APIキー未設定 — 設定タブで入力すると日本語訳が表示されます）";
-  // DeepL Free API endpoint (free keys end with :fx)
-  const endpoint = key.endsWith(":fx")
-    ? "https://api-free.deepl.com/v2/translate"
-    : "https://api.deepl.com/v2/translate";
+  // MyMemory: free, no key needed, CORS-friendly
   try {
-    const r = await fetch(endpoint, {
-      method:"POST",
-      headers:{"Content-Type":"application/x-www-form-urlencoded"},
-      body: new URLSearchParams({auth_key:key, text:text, target_lang:"JA", source_lang:"EN"})
-    });
+    const url="https://api.mymemory.translated.net/get?q="+encodeURIComponent(text)+"&langpair=en|ja";
+    const r = await fetch(url);
     const d = await r.json();
-    if(d.message) return "翻訳エラー: "+d.message;
-    return d.translations?.[0]?.text || "翻訳できませんでした";
+    if(d.responseStatus===200) return d.responseData.translatedText;
+    // fallback: try DeepL if key is set
+    const key=getApiKey();
+    if(key){
+      const ep=key.endsWith(":fx")?"https://api-free.deepl.com/v2/translate":"https://api.deepl.com/v2/translate";
+      const r2=await fetch(ep,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},
+        body:new URLSearchParams({auth_key:key,text:text,target_lang:"JA",source_lang:"EN"})});
+      const d2=await r2.json();
+      return d2.translations?.[0]?.text||"翻訳できませんでした";
+    }
+    return "翻訳できませんでした";
   } catch(e) { return "翻訳エラー: "+e.message; }
 }
 
@@ -210,27 +211,29 @@ function renderStats() {
 
 function renderSettings() {
   const key = getApiKey();
-  const isFree = key.endsWith(":fx");
   return `<div style="width:100%;max-width:640px;">
-    <div style="background:#0f0f18;border:1px solid #1e1e2e;border-radius:12px;padding:20px;">
-      <div style="font-size:13px;color:#7c6fff;margin-bottom:12px;font-weight:600;">DeepL 翻訳設定</div>
-      <div style="font-size:11px;color:#555;margin-bottom:16px;line-height:1.8;">
-        採点後の日本語訳にDeepL APIキーを使用します。<br>
-        無料プランのキーは末尾が <code style="color:#facc15;background:#1a1a10;padding:1px 5px;border-radius:3px;">:fx</code> で終わります。<br>
-        キーはこのブラウザにのみ保存されます。
+    <div style="background:#0f0f18;border:1px solid #1e1e2e;border-radius:12px;padding:20px;margin-bottom:10px;">
+      <div style="font-size:13px;color:#4ade80;margin-bottom:10px;font-weight:600;">✓ 翻訳（MyMemory）</div>
+      <div style="font-size:11px;color:#555;line-height:1.8;">
+        APIキー不要で自動的に日本語訳が表示されます。<br>
+        無料枠: 1日5,000文字まで。
       </div>
-      <div style="margin-bottom:16px;">
-        <div style="font-size:10px;color:#444;margin-bottom:6px;letter-spacing:.08em;">DEEPL API KEY</div>
+    </div>
+    <div style="background:#0f0f18;border:1px solid #1e1e2e;border-radius:12px;padding:20px;">
+      <div style="font-size:13px;color:#7c6fff;margin-bottom:10px;font-weight:600;">DeepL APIキー（任意・高精度）</div>
+      <div style="font-size:11px;color:#555;margin-bottom:14px;line-height:1.8;">
+        DeepLキーを設定するとMyMemoryの代わりに使用されます。<br>
+        無料キーは末尾が <code style="color:#facc15;background:#1a1a10;padding:1px 5px;border-radius:3px;">:fx</code> で終わります。
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="font-size:10px;color:#444;margin-bottom:6px;letter-spacing:.08em;">DEEPL API KEY（任意）</div>
         <input id="apiKeyInput" type="password" value="${key}"
           placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx"
           style="width:100%;background:#080810;border:1px solid #2a2a3a;border-radius:6px;color:#e8e8f0;font-family:'Courier New',monospace;font-size:12px;padding:10px;outline:none;"
-          oninput="saveApiKey(this.value)"
-        />
+          oninput="saveApiKey(this.value)"/>
       </div>
-      <div style="font-size:12px;color:${key?"#4ade80":"#555"};">
-        ${key ? "✓ "+( isFree?"無料プラン (Free API)":"有料プラン")+" — 設定済み" : "未設定"}
-      </div>
-      ${key?`<button onclick="localStorage.removeItem('ds_deepl_key');render();" style="margin-top:12px;padding:6px 14px;border:1px solid #3a1a1a;border-radius:6px;background:transparent;color:#f87171;font-family:'Courier New',monospace;font-size:11px;cursor:pointer;">キーを削除</button>`:""}
+      <div style="font-size:11px;color:${key?"#4ade80":"#444"};">${key?"✓ DeepL設定済み":"未設定（MyMemoryを使用中）"}</div>
+      ${key?`<button onclick="localStorage.removeItem('ds_deepl_key');render();" style="margin-top:10px;padding:5px 12px;border:1px solid #3a1a1a;border-radius:6px;background:transparent;color:#f87171;font-family:'Courier New',monospace;font-size:11px;cursor:pointer;">キーを削除</button>`:""}
     </div>
   </div>`;
 }
