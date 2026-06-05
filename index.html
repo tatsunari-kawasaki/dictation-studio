@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dictation Studio</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0a0a0f;color:#e8e8f0;font-family:'Courier New',monospace;min-height:100vh;}
+.app{display:flex;flex-direction:column;align-items:center;padding:24px 12px 40px;}
+h1{font-size:28px;font-weight:700;background:linear-gradient(135deg,#e8e8f0,#7c6fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:22px;}
+.tabs{display:flex;border-bottom:1px solid #1a1a28;margin-bottom:16px;width:100%;max-width:640px;}
+.tab{padding:8px 16px;border:none;background:transparent;color:#444;font-family:'Courier New',monospace;font-size:12px;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.tab.active{color:#7c6fff;border-bottom-color:#7c6fff;}
+.card{background:#0f0f18;border:1px solid #1e1e2e;border-radius:12px;padding:18px 20px;width:100%;max-width:640px;margin-bottom:10px;}
+.row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;}
+.play-btn{width:50px;height:50px;border-radius:50%;border:2px solid #7c6fff;background:transparent;color:#7c6fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
+.play-btn:hover,.play-btn.active{background:#7c6fff33;}
+.play-btn.active{animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 #7c6fff44}50%{box-shadow:0 0 0 8px #7c6fff00}}
+.sent-box{background:#080810;border-radius:8px;padding:14px 16px;margin-bottom:14px;line-height:3;font-size:14px;word-spacing:2px;}
+.blank-wrap{display:inline-flex;flex-direction:column;align-items:center;margin:0 2px;vertical-align:bottom;cursor:pointer;}
+.blank-inp{display:inline-flex;align-items:center;justify-content:center;min-height:26px;border-radius:4px;font-size:13px;letter-spacing:1px;padding:1px 4px;transition:all .15s;border:1.5px solid #2a2a3a;background:#141424;color:#e8e8f0;}
+.blank-inp.focused{border-color:#7c6fff;background:#1e1e38;}
+.blank-inp.correct{border-color:#4ade80;background:#1a3a1a;color:#4ade80;}
+.blank-inp.wrong{border-color:#f87171;background:#3a1a1a;color:#f87171;}
+.underscores{display:flex;gap:2px;margin-top:2px;}
+.underscore{width:8px;height:2px;background:#333;border-radius:1px;display:inline-block;}
+.static-word{color:#9898b0;}
+.full-ta{width:100%;background:#12121a;border:1px solid #2a2a3a;border-radius:8px;color:#e8e8f0;font-family:'Courier New',monospace;font-size:13px;padding:10px;resize:none;outline:none;line-height:1.6;margin-bottom:12px;display:block;}
+.full-ta:focus{border-color:#7c6fff55;}
+.btns{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;}
+.btn{padding:8px 18px;border-radius:6px;font-family:'Courier New',monospace;font-size:12px;cursor:pointer;transition:all .15s;border:none;}
+.btn-p{background:#7c6fff;color:#fff;}
+.btn-p:hover{background:#9d8fff;}
+.btn-p:disabled{background:#1a1a28;color:#333;cursor:default;}
+.btn-s{background:transparent;border:1px solid #2a2a3a;color:#555;}
+.btn-s:hover{border-color:#444;color:#999;}
+.seg{display:flex;}
+.seg-btn{padding:5px 12px;border:1px solid #2a2a3a;background:transparent;color:#555;font-family:'Courier New',monospace;font-size:11px;cursor:pointer;transition:all .15s;}
+.seg-btn:first-child{border-radius:6px 0 0 6px;}
+.seg-btn:last-child{border-radius:0 6px 6px 0;border-left:none;}
+.seg-btn.active{background:#7c6fff22;color:#7c6fff;border-color:#7c6fff55;}
+.filter-btn{padding:4px 10px;border-radius:20px;border:1px solid #1e1e2e;background:transparent;color:#555;font-family:'Courier New',monospace;font-size:11px;cursor:pointer;transition:all .15s;margin-right:4px;margin-bottom:4px;}
+.filter-btn.active{border-color:#7c6fff;color:#7c6fff;background:#7c6fff15;}
+.mode-btn{padding:7px 16px;border:1px solid #2a2a3a;background:transparent;color:#555;font-family:'Courier New',monospace;font-size:12px;cursor:pointer;border-radius:8px;margin-right:6px;transition:all .15s;}
+.mode-btn.active{background:#1a1a30;border-color:#7c6fff;color:#9d8fff;}
+.kb{background:#0c0c18;border:1px solid #1e1e2e;border-radius:12px;padding:10px 8px 8px;width:100%;max-width:640px;user-select:none;}
+.kb-row{display:flex;justify-content:center;margin-bottom:3px;}
+.key{min-width:32px;height:40px;margin:2px;border-radius:6px;border:1px solid #2a2a3a;background:#141420;color:#c8c8e0;font-family:'Courier New',monospace;font-size:13px;cursor:pointer;transition:transform .07s,background .07s;display:flex;align-items:center;justify-content:center;user-select:none;}
+.key:active{background:#2a2a44;transform:scale(0.93);}
+.key-wide{min-width:52px;}
+.key-space{min-width:160px;font-size:10px;letter-spacing:.1em;color:#555;}
+.key-caps.on{background:#1e1e38;border-color:#7c6fff66;color:#9d8fff;}
+.score-box{display:flex;align-items:center;gap:14px;padding:12px 14px;background:#080810;border-radius:8px;margin-bottom:12px;}
+.score-num{font-size:42px;font-weight:700;line-height:1;}
+.trans-box{background:#080810;border-radius:8px;padding:12px 14px;margin-bottom:12px;border-left:2px solid #7c6fff33;}
+.trans-label{font-size:10px;color:#333;margin-bottom:6px;letter-spacing:.08em;}
+.trans-text{color:#8888b0;line-height:1.7;font-size:13px;}
+.mistake-item{background:#0f0f18;border:1px solid #2a1a1a;border-radius:8px;padding:12px 14px;margin-bottom:8px;}
+.hist-item{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#0f0f18;border-radius:6px;margin-bottom:5px;font-size:12px;}
+.stat-cards{display:flex;gap:10px;margin-bottom:16px;}
+.stat-card{flex:1;background:#0f0f18;border:1px solid #1e1e2e;border-radius:8px;padding:12px;text-align:center;}
+.pdf-label{font-size:11px;color:#555;width:100%;max-width:640px;margin-bottom:8px;padding:5px 10px;background:#0f0f18;border-radius:5px;border-left:2px solid #7dd3fc44;}
+.controls{display:flex;align-items:center;margin-bottom:12px;width:100%;max-width:640px;flex-wrap:wrap;gap:4px;}
+.full-display{background:#080810;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#444;}
+.full-display-label{font-size:10px;color:#2a2a3a;margin-bottom:3px;}
+.rec-btn{padding:8px 16px;border:1px solid #3a3a5a;border-radius:8px;background:transparent;color:#888;font-family:'Courier New',monospace;font-size:12px;cursor:pointer;margin-right:8px;margin-bottom:4px;}
+.rec-btn.primary{background:#7c6fff;color:#fff;border-color:#7c6fff;}
+.rec-btn.danger{background:#f87171;color:#fff;border-color:#f87171;}
+.word-tag{display:inline-block;padding:3px 9px;border-radius:5px;font-size:13px;margin:2px;}
+.empty-msg{text-align:center;padding:40px;color:#333;font-size:13px;}
+.pdf-layout{display:flex;gap:10px;width:100%;max-width:900px;}
+.pdf-sidebar{width:180px;flex-shrink:0;display:flex;flex-direction:column;gap:3px;}
+.pdf-sec-btn{padding:8px 10px;border:1px solid #1e1e2e;border-radius:6px;background:transparent;color:#555;font-family:"Courier New",monospace;font-size:11px;cursor:pointer;text-align:left;transition:all .15s;line-height:1.3;word-break:break-word;}
+.pdf-sec-btn.active{background:#1a1a30;border-color:#7c6fff;color:#9d8fff;}
+.pdf-sec-btn:hover:not(.active){border-color:#333;color:#888;}
+.pdf-main{flex:1;min-width:0;display:flex;flex-direction:column;align-items:stretch;}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <h1>Dictation Studio</h1>
+  <div class="tabs" id="tabs"></div>
+  <div id="content" style="width:100%;max-width:640px;display:flex;flex-direction:column;align-items:center;"></div>
+</div>
+<script>
+// ── Data ──
+const SENTENCES = [
+  {text:"The quick brown fox jumps over the lazy dog.",level:"Easy"},
+  {text:"She sells seashells by the seashore.",level:"Easy"},
+  {text:"Practice makes perfect, so never give up.",level:"Easy"},
+  {text:"The early bird catches the worm every morning.",level:"Easy"},
+  {text:"Knowledge is power, but wisdom is the key to success.",level:"Medium"},
+  {text:"Despite the heavy rain, they decided to go hiking in the mountains.",level:"Medium"},
+  {text:"The scientists discovered a new species of fish in the deep ocean.",level:"Medium"},
+  {text:"He carefully examined the ancient manuscript with a magnifying glass.",level:"Medium"},
+  {text:"The technological advancements of the twenty-first century have revolutionized communication.",level:"Hard"},
+  {text:"Environmental conservation requires collaborative efforts from governments, corporations, and individuals alike.",level:"Hard"},
+  {text:"The philosophical implications of artificial intelligence challenge our fundamental understanding of consciousness.",level:"Hard"},
+  {text:"Sophisticated algorithms enable machines to recognize patterns and make predictions with remarkable accuracy.",level:"Hard"},
+];
+const LC = {Easy:"#4ade80",Medium:"#facc15",Hard:"#f87171",PDF:"#7dd3fc"};
+const KB = [["q","w","e","r","t","y","u","i","o","p"],["a","s","d","f","g","h","j","k","l"],["z","x","c","v","b","n","m"]];
+
+// ── Helpers ──
+const tokenize = t => t.match(/[\w']+|[.,!?;:\s]+/g)||[];
+const getWords = t => (t.match(/[\w']+/g)||[]);
+const norm = w => (w||"").toLowerCase().replace(/[.,!?;:'"]/g,"").trim();
+const letCount = w => w.replace(/[^a-zA-Z0-9]/g,"").length;
+
+function pickBlanks(words, level) {
+  const ratio = level==="Easy"?.35:level==="Medium"?.5:.65;
+  const count = Math.max(1, Math.round(words.length*ratio));
+  const idx = words.map((_,i)=>i);
+  for(let i=idx.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
+  return new Set(idx.slice(0,count));
+}
+
+function getApiKey(){ return localStorage.getItem("ds_deepl_key")||""; }
+function saveApiKey(k){ localStorage.setItem("ds_deepl_key",k.trim()); }
+
+async function doTranslate(text) {
+  const key = getApiKey();
+  if(!key) return "（DeepL APIキー未設定 — 設定タブで入力すると日本語訳が表示されます）";
+  // DeepL Free API endpoint (free keys end with :fx)
+  const endpoint = key.endsWith(":fx")
+    ? "https://api-free.deepl.com/v2/translate"
+    : "https://api.deepl.com/v2/translate";
+  try {
+    const r = await fetch(endpoint, {
+      method:"POST",
+      headers:{"Content-Type":"application/x-www-form-urlencoded"},
+      body: new URLSearchParams({auth_key:key, text:text, target_lang:"JA", source_lang:"EN"})
+    });
+    const d = await r.json();
+    if(d.message) return "翻訳エラー: "+d.message;
+    return d.translations?.[0]?.text || "翻訳できませんでした";
+  } catch(e) { return "翻訳エラー: "+e.message; }
+}
+
+// ── State ──
+const state = {
+  tab:"practice", pMode:"dictation", filter:"All", dMode:"partial",
+  idx:0, blanks:new Set(), inputs:{}, focused:null,
+  submitted:false, score:null, playCnt:0,
+  history:[], mistakes:[], speaking:false,
+  fullInput:"", caps:false, trans:"", translating:false,
+  pdfSents:[], pdfTitle:"", pdfSections:[], pdfSection:0
+};
+
+function getSents() {
+  if(state.filter==="PDF"){
+    if(state.pdfSections.length>0) return state.pdfSections[state.pdfSection]?.sents||[];
+    return state.pdfSents;
+  }
+  if(state.filter==="All") return SENTENCES;
+  return SENTENCES.filter(s=>s.level===state.filter);
+}
+function setPdfSection(i){state.pdfSection=i;state.idx=0;doReset();}
+function getCurrent() { const s=getSents(); return s[state.idx % Math.max(s.length,1)]; }
+
+// ── Render ──
+function render() {
+  renderTabs();
+  renderContent();
+}
+
+function renderTabs() {
+  const tabs = document.getElementById("tabs");
+  const items = [["practice","練習"],["mistakes",`ミス (${state.mistakes.length})`],["stats","記録"],["settings","設定"]];
+  tabs.innerHTML = items.map(([t,l])=>`<button class="tab${state.tab===t?" active":""}" onclick="setTab('${t}')">${l}</button>`).join("");
+}
+
+function renderContent() {
+  const el = document.getElementById("content");
+  if(state.tab==="mistakes") { el.innerHTML = renderMistakes(); return; }
+  if(state.tab==="stats") { el.innerHTML = renderStats(); return; }
+  if(state.tab==="settings") { el.innerHTML = renderSettings(); return; }
+  renderPractice(el);
+}
+
+function renderMistakes() {
+  if(!state.mistakes.length) return `<div class="empty-msg">まだミスはありません 🎉</div>`;
+  return state.mistakes.slice().reverse().map(m=>`
+    <div class="mistake-item" style="width:100%;max-width:640px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="color:#f87171;font-size:15px;font-weight:600;">${m.correct}</span>
+        <span style="color:#333;font-size:11px;">✗ ${m.times}回</span>
+      </div>
+      <div style="font-size:11px;color:#555;">回答: <span style="color:#f87171aa;">${m.typed||"(未入力)"}</span></div>
+      <div style="font-size:11px;color:#2a2a3a;margin-top:4px;font-style:italic;">${m.sentence}</div>
+    </div>`).join("");
+}
+
+function renderStats() {
+  if(!state.history.length) return `<div class="empty-msg">まだ記録がありません</div>`;
+  const avg = Math.round(state.history.reduce((a,h)=>a+h.score,0)/state.history.length);
+  const best = Math.max(...state.history.map(h=>h.score));
+  const cards = [{l:"平均",v:avg+"点",c:"#4ade80"},{l:"最高",v:best+"点",c:"#7c6fff"},{l:"回数",v:state.history.length+"回",c:"#aaa"}]
+    .map(s=>`<div class="stat-card"><div style="font-size:22px;font-weight:700;color:${s.c};">${s.v}</div><div style="font-size:10px;color:#444;margin-top:4px;">${s.l}</div></div>`).join("");
+  const rows = state.history.slice().reverse().map(h=>`
+    <div class="hist-item">
+      <span style="color:#444;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${h.text}</span>
+      <span style="color:${h.score>=80?"#4ade80":h.score>=50?"#facc15":"#f87171"};">${h.score}点</span>
+    </div>`).join("");
+  return `<div style="width:100%;max-width:640px;"><div class="stat-cards">${cards}</div>${rows}</div>`;
+}
+
+function renderSettings() {
+  const key = getApiKey();
+  const isFree = key.endsWith(":fx");
+  return `<div style="width:100%;max-width:640px;">
+    <div style="background:#0f0f18;border:1px solid #1e1e2e;border-radius:12px;padding:20px;">
+      <div style="font-size:13px;color:#7c6fff;margin-bottom:12px;font-weight:600;">DeepL 翻訳設定</div>
+      <div style="font-size:11px;color:#555;margin-bottom:16px;line-height:1.8;">
+        採点後の日本語訳にDeepL APIキーを使用します。<br>
+        無料プランのキーは末尾が <code style="color:#facc15;background:#1a1a10;padding:1px 5px;border-radius:3px;">:fx</code> で終わります。<br>
+        キーはこのブラウザにのみ保存されます。
+      </div>
+      <div style="margin-bottom:16px;">
+        <div style="font-size:10px;color:#444;margin-bottom:6px;letter-spacing:.08em;">DEEPL API KEY</div>
+        <input id="apiKeyInput" type="password" value="${key}"
+          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx"
+          style="width:100%;background:#080810;border:1px solid #2a2a3a;border-radius:6px;color:#e8e8f0;font-family:'Courier New',monospace;font-size:12px;padding:10px;outline:none;"
+          oninput="saveApiKey(this.value)"
+        />
+      </div>
+      <div style="font-size:12px;color:${key?"#4ade80":"#555"};">
+        ${key ? "✓ "+( isFree?"無料プラン (Free API)":"有料プラン")+" — 設定済み" : "未設定"}
+      </div>
+      ${key?`<button onclick="localStorage.removeItem('ds_deepl_key');render();" style="margin-top:12px;padding:6px 14px;border:1px solid #3a1a1a;border-radius:6px;background:transparent;color:#f87171;font-family:'Courier New',monospace;font-size:11px;cursor:pointer;">キーを削除</button>`:""}
+    </div>
+  </div>`;
+}
+
+function buildCardHtml(current,sents){
+  const lvColor=LC[current.level]||"#7dd3fc";
+  let html=`<div class="card">
+    <div class="row">
+      <span class="badge" style="color:${lvColor};border:1px solid ${lvColor}33;">${(current.level||"PDF").toUpperCase()}</span>
+      <span style="color:#252535;font-size:11px;">${state.idx%sents.length+1}/${sents.length}${state.playCnt>0?` · 再生${state.playCnt}回`:""}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <button class="play-btn${state.speaking?" active":""}" onclick="speak()">${state.speaking?"⏸":"▶"}</button>
+      <span style="color:#2a2a3a;font-size:11px;">${state.playCnt===0?"クリック / Spaceで再生":"もう一度再生できます"}</span>
+    </div>`;
+  if(state.pMode==="dictation"){
+    html+=`<div style="font-size:10px;color:#333;margin-bottom:4px;letter-spacing:.05em;">単語をクリックでその位置から再生</div>`;
+    html+=`<div class="sent-box">${renderSentence(current)}</div>`;
+    if(state.dMode==="full"&&!state.submitted)
+      html+=`<textarea class="full-ta" id="fullta" rows="2" readonly placeholder="物理キーボード or 下のキーボードで入力...">${state.fullInput}</textarea>`;
+    if(state.dMode==="full"&&state.submitted)
+      html+=`<div class="full-display"><div class="full-display-label">あなたの回答</div>${state.fullInput}</div>`;
+    if(state.submitted){
+      const sc=state.score;
+      const emoji=sc===100?"🎉 完璧！":sc>=80?"👏 すばらしい！":sc>=50?"💪 もう少し！":"🔄 もう一度！";
+      html+=`<div class="score-box"><div class="score-num" style="color:${sc>=80?"#4ade80":sc>=50?"#facc15":"#f87171"};">${sc}</div>
+        <div><div style="font-size:10px;color:#333;">点</div><div style="font-size:16px;margin-top:2px;">${emoji}</div></div></div>
+        <div class="trans-box"><div class="trans-label">日本語訳</div>
+        <div class="trans-text" id="transText">${state.translating?"翻訳中...":state.trans}</div></div>`;
+    }
+    if(!state.submitted)
+      html+=`<div class="btns"><button class="btn btn-s" onclick="nextSent()">スキップ</button><button class="btn btn-p" onclick="doSubmit()" ${Object.keys(state.inputs).length===0&&state.fullInput.trim().length===0?"disabled":""}>確認する</button></div>`;
+    else
+      html+=`<div class="btns"><button class="btn btn-s" onclick="doReset()">やり直す</button><button class="btn btn-p" onclick="nextSent()">次の問題 →</button></div>`;
+  }
+  if(state.pMode==="reading"){
+    html+=renderReadingMode(current.text);
+    html+=`<div class="btns" style="margin-top:12px;"><button class="btn btn-p" onclick="nextSent()">次の文章 →</button></div>`;
+  }
+  html+=`</div>`;
+  return html;
+}
+
+function renderPractice(el) {
+  const current = getCurrent();
+  const sents = getSents();
+  const filters = ["All","Easy","Medium","Hard",...(state.pdfSents.length?["PDF"]:[])];
+
+  let html = `
+    <div class="controls">
+      <button class="mode-btn${state.pMode==="dictation"?" active":""}" onclick="setPMode('dictation')">✍️ ディクテーション</button>
+      <button class="mode-btn${state.pMode==="reading"?" active":""}" onclick="setPMode('reading')">🎤 音読</button>
+      <label style="margin-left:auto;padding:5px 10px;border:1px solid #2a2a3a;border-radius:6px;color:#555;font-size:11px;cursor:pointer;">
+        📄 PDF読込<input type="file" accept=".pdf" onchange="loadPDF(this)" style="display:none;">
+      </label>
+    </div>
+    <div class="controls">
+      ${filters.map(f=>`<button class="filter-btn${state.filter===f?" active":""}" onclick="setFilter('${f}')">${f!=="All"&&f!=="PDF"?`<span style="color:${LC[f]};margin-right:2px;">●</span>`:""}${f==="PDF"?"📄 ":""}${f}</button>`).join("")}
+      ${state.pMode==="dictation"?`<div class="seg" style="margin-left:auto;">
+        <button class="seg-btn${state.dMode==="partial"?" active":""}" style="border-radius:6px 0 0 6px;" onclick="setDMode('partial')">一部穴埋め</button>
+        <button class="seg-btn${state.dMode==="full"?" active":""}" style="border-radius:0 6px 6px 0;border-left:none;" onclick="setDMode('full')">完全</button>
+      </div>`:""}
+    </div>
+  `;
+
+  if(state.filter==="PDF"&&state.pdfSections.length>0){
+    // PDF layout with sidebar
+    const sidebar=state.pdfSections.map((sec,i)=>`
+      <button class="pdf-sec-btn${state.pdfSection===i?" active":""}" onclick="setPdfSection(${i})">${sec.title}</button>
+    `).join("");
+    const sents2=getSents();
+    const cur2=sents2[state.idx%Math.max(sents2.length,1)];
+    const mainHtml=cur2?buildCardHtml(cur2,sents2):`<div class="empty-msg">文章がありません</div>`;
+    el.innerHTML=`
+      <div style="font-size:11px;color:#555;margin-bottom:8px;padding:4px 8px;background:#0f0f18;border-radius:5px;border-left:2px solid #7dd3fc44;width:100%;max-width:900px;">📄 ${state.pdfTitle}</div>
+      <div class="pdf-layout">
+        <div class="pdf-sidebar">
+          <div style="font-size:10px;color:#333;margin-bottom:6px;letter-spacing:.08em;padding-left:2px;">SECTIONS</div>
+          ${sidebar}
+        </div>
+        <div class="pdf-main" id="pdf-main">${mainHtml}</div>
+      </div>
+    `;
+    if(state.pMode==="dictation"&&!state.submitted){
+      document.getElementById("pdf-main").insertAdjacentHTML("beforeend",renderKeyboard());
+    }
+    return;
+  }
+
+  if(!current){el.innerHTML=html;return;}
+
+  const lvColor = LC[current.level]||"#7dd3fc";
+  html += `<div class="card">
+    <div class="row">
+      <span class="badge" style="color:${lvColor};border:1px solid ${lvColor}33;">${(current.level||"PDF").toUpperCase()}</span>
+      <span style="color:#252535;font-size:11px;">${state.idx%sents.length+1}/${sents.length}${state.playCnt>0?` · 再生${state.playCnt}回`:""}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <button class="play-btn${state.speaking?" active":""}" onclick="speak()">${state.speaking?"⏸":"▶"}</button>
+      <span style="color:#2a2a3a;font-size:11px;">${state.playCnt===0?"クリック / Spaceで再生":"もう一度再生できます"}</span>
+    </div>`;
+
+  if(state.pMode==="dictation") {
+    html += `<div style="font-size:10px;color:#333;margin-bottom:4px;letter-spacing:.05em;">単語をクリックでその位置から再生</div>`;
+  html += `<div class="sent-box">${renderSentence(current)}</div>`;
+    if(state.dMode==="full"&&!state.submitted)
+      html += `<textarea class="full-ta" id="fullta" rows="2" readonly placeholder="物理キーボード or 下のキーボードで入力...">${state.fullInput}</textarea>`;
+    if(state.dMode==="full"&&state.submitted)
+      html += `<div class="full-display"><div class="full-display-label">あなたの回答</div>${state.fullInput}</div>`;
+    if(state.submitted) {
+      const sc = state.score;
+      const emoji = sc===100?"🎉 完璧！":sc>=80?"👏 すばらしい！":sc>=50?"💪 もう少し！":"🔄 もう一度！";
+      html += `
+        <div class="score-box">
+          <div class="score-num" style="color:${sc>=80?"#4ade80":sc>=50?"#facc15":"#f87171"};">${sc}</div>
+          <div><div style="font-size:10px;color:#333;">点</div><div style="font-size:16px;margin-top:2px;">${emoji}</div></div>
+        </div>
+        <div class="trans-box">
+          <div class="trans-label">日本語訳</div>
+          <div class="trans-text" id="transText">${state.translating?"翻訳中...":state.trans}</div>
+        </div>`;
+    }
+    if(!state.submitted)
+      html += `<div class="btns"><button class="btn btn-s" onclick="nextSent()">スキップ</button><button class="btn btn-p" onclick="doSubmit()" ${Object.keys(state.inputs).length===0&&state.fullInput.trim().length===0?"disabled":""}>確認する</button></div>`;
+    else
+      html += `<div class="btns"><button class="btn btn-s" onclick="doReset()">やり直す</button><button class="btn btn-p" onclick="nextSent()">次の問題 →</button></div>`;
+  }
+
+  if(state.pMode==="reading") {
+    html += renderReadingMode(current.text);
+    html += `<div class="btns" style="margin-top:12px;"><button class="btn btn-p" onclick="nextSent()">次の文章 →</button></div>`;
+  }
+
+  html += `</div>`; // close card
+
+  if(state.pMode==="dictation"&&!state.submitted) {
+    html += renderKeyboard();
+  }
+
+  el.innerHTML = html;
+}
+
+function renderSentence(current) {
+  const tokens = tokenize(current.text);
+  let wi = 0;
+  return tokens.map(token => {
+    if(!/[\w']+/.test(token)) return `<span class="static-word">${token}</span>`;
+    const wordIdx = wi++;
+    if(!state.blanks.has(wordIdx)) return `<span class="static-word" title="ここから再生" style="cursor:pointer;" onclick="speak(${wordIdx})">${token}</span>`;
+    const n = letCount(token);
+    const w = Math.max(n*11+12,30);
+    const underscores = Array.from({length:n}).map(()=>`<span class="underscore"></span>`).join("");
+    if(state.dMode==="full") {
+      const fiw = getWords(state.fullInput);
+      const uw=norm(fiw[wordIdx]||""), ow=norm(token), ok=uw===ow;
+      const color = state.submitted?(ok?"#4ade80":"#f87171"):"#444";
+      const border = state.submitted?(ok?"#4ade80":"#f87171"):"#2a2a3a";
+      return `<span class="blank-wrap" style="pointer-events:none;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:${w}px;min-height:24px;border-bottom:2px solid ${border};color:${color};font-size:13px;text-align:center;">${state.submitted?token:""}</span>
+        <span class="underscores">${underscores}</span>
+      </span>`;
+    }
+    const st = state.submitted?(norm(state.inputs[wordIdx]||"")===norm(token)?"correct":"wrong"):(state.focused===wordIdx?"focused":"");
+    return `<span class="blank-wrap" onclick="setFocused(${wordIdx})">
+      <span class="blank-inp ${st}" style="width:${w}px;">${state.inputs[wordIdx]||""}</span>
+      <span class="underscores">${underscores}</span>
+    </span>`;
+  }).join("");
+}
+
+function renderKeyboard() {
+  const rows = KB.map((row,ri)=>{
+    let keys = row.map(k=>`<button class="key" onpointerdown="event.preventDefault();pressKey('${state.caps?k.toUpperCase():k}')">${state.caps?k.toUpperCase():k}</button>`).join("");
+    if(ri===2) keys = `<button class="key key-wide key-caps${state.caps?" on":""}" onpointerdown="event.preventDefault();toggleCaps()">${state.caps?"⇧ ON":"⇧"}</button>` + keys + `<button class="key key-wide" onpointerdown="event.preventDefault();pressBack()">⌫</button>`;
+    return `<div class="kb-row">${keys}</div>`;
+  }).join("");
+  return `<div class="kb">
+    ${rows}
+    <div class="kb-row">
+      <button class="key" onpointerdown="event.preventDefault();pressKey('\'')">\'</button>
+      <button class="key key-space" onpointerdown="event.preventDefault();speak()">▶ SPACE</button>
+      <button class="key" onpointerdown="event.preventDefault();pressKey('-')">-</button>
+    </div>
+  </div>`;
+}
+
+let recState="idle", recRef=null, recTranscript="", recScore=null, recFeedback=[];
+function renderReadingMode(sentence) {
+  let btns = `<button class="rec-btn" onclick="speakSample('${sentence.replace(/'/g,"\\'")}')">🔊 手本を聴く</button>`;
+  if(recState==="idle") btns+=`<button class="rec-btn primary" onclick="startRec()">🎤 音読する</button>`;
+  if(recState==="recording") btns+=`<button class="rec-btn danger" onclick="stopRec()">⏹ 停止</button>`;
+  if(recState==="done") btns+=`<button class="rec-btn" onclick="resetRec()">やり直す</button>`;
+  let result="";
+  if(recScore!==null) {
+    const emoji=recScore===100?"🎉 完璧！":recScore>=80?"👏 上手！":recScore>=50?"💪 もう少し！":"🔄 もう一度！";
+    const tags=recFeedback.map(f=>`<span class="word-tag" style="background:${f.ok?"#1a3a1a":"#3a1a1a"};color:${f.ok?"#4ade80":"#f87171"};border:1px solid ${f.ok?"#4ade8044":"#f8717144"};">${f.word}</span>`).join("");
+    result=`<div class="score-box" style="margin-top:12px;">
+      <div class="score-num" style="color:${recScore>=80?"#4ade80":recScore>=50?"#facc15":"#f87171"};">${recScore}</div>
+      <div><div style="font-size:10px;color:#333;">点</div><div style="font-size:16px;margin-top:2px;">${emoji}</div></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">${tags}</div>
+    <div style="font-size:11px;color:#444;">認識: <span style="color:#555;">${recTranscript}</span></div>`;
+  }
+  return `<div style="margin-bottom:10px;display:flex;flex-wrap:wrap;">${btns}</div>${result}`;
+}
+
+// ── Actions ──
+function setTab(t){state.tab=t;render();}
+function setPMode(m){state.pMode=m;recState="idle";recScore=null;render();}
+function setFilter(f){state.filter=f;state.idx=0;doReset();}
+function setDMode(m){state.dMode=m;doReset();}
+function setFocused(i){if(!state.submitted){state.focused=i;render();}}
+function toggleCaps(){state.caps=!state.caps;render();}
+function nextSent(){state.idx=(state.idx+1)%Math.max(getSents().length,1);resetFull();render();}
+
+function resetFull(){
+  state.inputs={};state.focused=null;state.submitted=false;state.score=null;
+  state.playCnt=0;state.speaking=false;state.fullInput="";state.trans="";state.translating=false;
+  recState="idle";recScore=null;recFeedback=[];recTranscript="";
+  window.speechSynthesis?.cancel();
+  const current=getCurrent();
+  if(current){
+    const w=getWords(current.text);
+    state.blanks=state.dMode==="partial"?pickBlanks(w,current.level||"Medium"):new Set(w.map((_,i)=>i));
+    if(state.dMode==="partial"&&state.blanks.size>0) state.focused=[...state.blanks].sort((a,b)=>a-b)[0];
+  }
+}
+function doReset(){resetFull();render();}
+
+function getEnglishVoice(){
+  const voices=window.speechSynthesis.getVoices();
+  const pref=["Samantha","Alex","Karen","Daniel","Google US English","Microsoft Zira","Microsoft David"];
+  for(const name of pref){const v=voices.find(v=>v.name===name);if(v)return v;}
+  return voices.find(v=>v.lang==="en-US")||voices.find(v=>v.lang.startsWith("en"))||null;
+}
+
+function speak(fromWordIdx){
+  const current=getCurrent();if(!current)return;
+  window.speechSynthesis?.cancel();
+  let text=current.text;
+  // if fromWordIdx specified, cut text from that word onward
+  if(fromWordIdx!==undefined && fromWordIdx>0){
+    const words=getWords(current.text);
+    const fromWord=words[fromWordIdx];
+    if(fromWord){
+      const pos=current.text.indexOf(fromWord);
+      if(pos>=0) text=current.text.slice(pos);
+    }
+  }
+  const u=new SpeechSynthesisUtterance(text);
+  u.rate=0.9;u.lang="en-US";u.pitch=1;
+  const voice=getEnglishVoice();if(voice)u.voice=voice;
+  u.onstart=()=>{state.speaking=true;render();};
+  u.onend=()=>{state.speaking=false;render();};
+  window.speechSynthesis?.speak(u);
+  state.playCnt++;render();
+}
+
+function pressKey(k){
+  if(state.dMode==="full"){state.fullInput+=k;}
+  else{
+    if(state.focused===null)return;
+    const current=getCurrent();
+    const words=getWords(current.text);
+    const targetWord=words[state.focused]||"";
+    const maxLen=letCount(targetWord);
+    const cur=state.inputs[state.focused]||"";
+    if(cur.length>=maxLen)return; // 文字数上限
+    state.inputs[state.focused]=cur+k;
+    // 上限に達したら次の空欄へ自動移動
+    if(state.inputs[state.focused].length>=maxLen){
+      const arr=[...state.blanks].sort((a,b)=>a-b);
+      const i=arr.indexOf(state.focused);
+      if(i<arr.length-1)state.focused=arr[i+1];
+    }
+  }
+  render();
+}
+function pressBack(){
+  if(state.dMode==="full"){state.fullInput=state.fullInput.slice(0,-1);}
+  else{
+    if(state.focused===null)return;
+    const cur=state.inputs[state.focused]||"";
+    if(cur.length>0){state.inputs[state.focused]=cur.slice(0,-1);}
+    else{
+      const arr=[...state.blanks].sort((a,b)=>a-b);
+      const i=arr.indexOf(state.focused);
+      if(i>0)state.focused=arr[i-1];
+    }
+  }
+  render();
+}
+function pressSpace(){
+  if(state.dMode==="full"){state.fullInput+=" ";}
+  else{
+    if(state.focused===null)return;
+    const arr=[...state.blanks].sort((a,b)=>a-b);
+    const i=arr.indexOf(state.focused);
+    if(i<arr.length-1)state.focused=arr[i+1];
+  }
+  render();
+}
+
+function doSubmit(){
+  const current=getCurrent();if(!current)return;
+  const words=getWords(current.text);
+  let correct=0,total,wrong=[];
+  if(state.dMode==="full"){
+    const uw=getWords(state.fullInput);total=words.length;
+    words.forEach((w,i)=>{const o=norm(w),t=norm(uw[i]||"");if(t===o)correct++;else wrong.push({correct:o,typed:t});});
+  }else{
+    total=state.blanks.size;
+    words.forEach((w,i)=>{
+      if(!state.blanks.has(i))return;
+      const o=norm(w),t=norm(state.inputs[i]||"");
+      if(t===o)correct++;else wrong.push({correct:o,typed:t});
+    });
+  }
+  const sc=Math.round(correct/total*100);
+  state.score=sc;state.submitted=true;state.focused=null;
+  state.history.push({text:current.text,score:sc,level:current.level||"PDF"});
+  wrong.forEach(({correct:c,typed})=>{
+    const ex=state.mistakes.find(m=>m.correct===c);
+    if(ex){ex.times++;ex.typed=typed;ex.sentence=current.text;}
+    else state.mistakes.push({correct:c,typed,sentence:current.text,times:1});
+  });
+  state.translating=true;render();
+  doTranslate(current.text).then(t=>{state.trans=t;state.translating=false;const el=document.getElementById("transText");if(el)el.textContent=t;});
+}
+
+function speakSample(text){
+  window.speechSynthesis?.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.rate=0.9;u.lang="en-US";u.pitch=1;
+  const voice=getEnglishVoice();if(voice)u.voice=voice;
+  window.speechSynthesis?.speak(u);
+}
+function startRec(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert("Chrome推奨です");return;}
+  const rec=new SR();rec.lang="en-US";rec.interimResults=false;
+  const current=getCurrent();
+  rec.onresult=e=>{
+    const t=e.results[0][0].transcript;recTranscript=t;
+    const ow=getWords(current.text.toLowerCase()),sw=getWords(t.toLowerCase());
+    let c=0;
+    recFeedback=ow.map((w,i)=>{const ok=norm(sw[i]||"")===norm(w);if(ok)c++;return{word:w,ok};});
+    recScore=Math.round(c/ow.length*100);recState="done";render();
+  };
+  rec.onerror=()=>{recState="idle";render();};
+  rec.start();recRef=rec;recState="recording";
+  recTranscript="";recScore=null;recFeedback=[];render();
+}
+function stopRec(){recRef?.stop();recState="idle";render();}
+function resetRec(){recState="idle";recScore=null;recFeedback=[];recTranscript="";render();}
+
+async function loadPDF(input){
+  const file=input.files[0];if(!file)return;
+  try{
+    if(!window.pdfjsLib){
+      await new Promise((res,rej)=>{
+        const s=document.createElement("script");
+        s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+        s.onload=res;s.onerror=rej;document.head.appendChild(s);
+      });
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+    const buf=await file.arrayBuffer();
+    const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
+    let txt="";
+    for(let p=1;p<=Math.min(pdf.numPages,30);p++){
+      const page=await pdf.getPage(p);
+      const c=await page.getTextContent();
+      txt+=c.items.map(i=>i.str).join(" ")+"\n";
+    }
+    // clean up hyphenated line breaks and extra spaces
+    const cleaned = txt.replace(/- /g,"").replace(/\s+/g," ");
+    const sents=(cleaned.match(/[A-Z][^.!?]*[.!?]/g)||[])
+      .map(s=>s.trim())
+      .filter(s=>s.split(" ").length>=6 && s.split(" ").length<=50 && /[a-zA-Z]/.test(s))
+      .slice(0,40)
+      .map(s=>({text:s,level:"PDF"}));
+    if(sents.length===0){alert("文章を抽出できませんでした。テキスト形式のPDFか確認してください。");return;}
+    state.pdfSents=sents;state.pdfTitle=file.name;
+    state.filter="PDF";state.idx=0;doReset();
+    alert(sents.length+"文を読み込みました: "+file.name);
+  }catch(e){alert("PDFの読み込みに失敗しました: "+e.message);}
+}
+
+// ── Physical keyboard ──
+window.addEventListener("keydown",e=>{
+  if(state.tab!=="practice"||state.pMode!=="dictation"||state.submitted)return;
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  if(e.key===" "){e.preventDefault();speak();}
+  else if(e.key==="Backspace"){e.preventDefault();pressBack();}
+  else if(e.key==="Enter"){e.preventDefault();doSubmit();}
+  else if(e.key==="Tab"){e.preventDefault();pressSpace();}
+  else if(e.key==="CapsLock"){e.preventDefault();toggleCaps();}
+  else if(e.key.length===1&&/[a-z0-9'\-]/i.test(e.key)){pressKey(e.key.toLowerCase());}
+});
+
+// voices load asynchronously in some browsers
+window.speechSynthesis.onvoiceschanged=()=>{};
+
+// ── Init ──
+resetFull();
+render();
+</script>
+</body>
+</html>
