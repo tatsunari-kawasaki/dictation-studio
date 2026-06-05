@@ -284,7 +284,7 @@ function buildCardHtml(current,sents){
 function renderPractice(el) {
   const current = getCurrent();
   const sents = getSents();
-  const filters = ["All","Easy","Medium","Hard",...(state.pdfSents.length?["PDF"]:[])];
+  const filters = ["All","Easy","Medium","Hard",...(state.pdfSections.length||state.pdfSents.length?["PDF"]:[])];
 
   let html = `
     <div class="controls">
@@ -304,14 +304,13 @@ function renderPractice(el) {
   `;
 
   if(state.filter==="PDF"&&state.pdfSections.length>0){
-    // PDF layout with sidebar
     const sidebar=state.pdfSections.map((sec,i)=>`
       <button class="pdf-sec-btn${state.pdfSection===i?" active":""}" onclick="setPdfSection(${i})">${sec.title}</button>
     `).join("");
     const sents2=getSents();
     const cur2=sents2[state.idx%Math.max(sents2.length,1)];
     const mainHtml=cur2?buildCardHtml(cur2,sents2):`<div class="empty-msg">文章がありません</div>`;
-    el.innerHTML=`
+    el.innerHTML=html+`
       <div style="font-size:11px;color:#555;margin-bottom:8px;padding:4px 8px;background:#0f0f18;border-radius:5px;border-left:2px solid #7dd3fc44;width:100%;max-width:900px;">📄 ${state.pdfTitle}</div>
       <div class="pdf-layout">
         <div class="pdf-sidebar">
@@ -329,54 +328,8 @@ function renderPractice(el) {
 
   if(!current){el.innerHTML=html;return;}
 
-  const lvColor = LC[current.level]||"#7dd3fc";
-  html += `<div class="card">
-    <div class="row">
-      <span class="badge" style="color:${lvColor};border:1px solid ${lvColor}33;">${(current.level||"PDF").toUpperCase()}</span>
-      <span style="color:#252535;font-size:11px;">${state.idx%sents.length+1}/${sents.length}${state.playCnt>0?` · 再生${state.playCnt}回`:""}</span>
-    </div>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-      <button class="play-btn${state.speaking?" active":""}" onclick="speak()">${state.speaking?"⏸":"▶"}</button>
-      <span style="color:#2a2a3a;font-size:11px;">${state.playCnt===0?"クリック / Spaceで再生":"もう一度再生できます"}</span>
-    </div>`;
-
-  if(state.pMode==="dictation") {
-    html += `<div style="font-size:10px;color:#333;margin-bottom:4px;letter-spacing:.05em;">単語をクリックでその位置から再生</div>`;
-  html += `<div class="sent-box">${renderSentence(current)}</div>`;
-    if(state.dMode==="full"&&!state.submitted)
-      html += `<textarea class="full-ta" id="fullta" rows="2" readonly placeholder="物理キーボード or 下のキーボードで入力...">${state.fullInput}</textarea>`;
-    if(state.dMode==="full"&&state.submitted)
-      html += `<div class="full-display"><div class="full-display-label">あなたの回答</div>${state.fullInput}</div>`;
-    if(state.submitted) {
-      const sc = state.score;
-      const emoji = sc===100?"🎉 完璧！":sc>=80?"👏 すばらしい！":sc>=50?"💪 もう少し！":"🔄 もう一度！";
-      html += `
-        <div class="score-box">
-          <div class="score-num" style="color:${sc>=80?"#4ade80":sc>=50?"#facc15":"#f87171"};">${sc}</div>
-          <div><div style="font-size:10px;color:#333;">点</div><div style="font-size:16px;margin-top:2px;">${emoji}</div></div>
-        </div>
-        <div class="trans-box">
-          <div class="trans-label">日本語訳</div>
-          <div class="trans-text" id="transText">${state.translating?"翻訳中...":state.trans}</div>
-        </div>`;
-    }
-    if(!state.submitted)
-      html += `<div class="btns"><button class="btn btn-s" onclick="nextSent()">スキップ</button><button class="btn btn-p" onclick="doSubmit()" ${Object.keys(state.inputs).length===0&&state.fullInput.trim().length===0?"disabled":""}>確認する</button></div>`;
-    else
-      html += `<div class="btns"><button class="btn btn-s" onclick="doReset()">やり直す</button><button class="btn btn-p" onclick="nextSent()">次の問題 →</button></div>`;
-  }
-
-  if(state.pMode==="reading") {
-    html += renderReadingMode(current.text);
-    html += `<div class="btns" style="margin-top:12px;"><button class="btn btn-p" onclick="nextSent()">次の文章 →</button></div>`;
-  }
-
-  html += `</div>`; // close card
-
-  if(state.pMode==="dictation"&&!state.submitted) {
-    html += renderKeyboard();
-  }
-
+  html += buildCardHtml(current, sents);
+  if(state.pMode==="dictation"&&!state.submitted) html += renderKeyboard();
   el.innerHTML = html;
 }
 
