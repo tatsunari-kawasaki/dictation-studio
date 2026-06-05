@@ -348,15 +348,22 @@ function renderSentence(current) {
       const uw=norm(fiw[wordIdx]||""), ow=norm(token), ok=uw===ow;
       const color = state.submitted?(ok?"#4ade80":"#f87171"):"#444";
       const border = state.submitted?(ok?"#4ade80":"#f87171"):"#2a2a3a";
+      const correctLabelFull = state.submitted&&!ok
+        ? `<span style="font-size:11px;color:#fb923c;letter-spacing:0.5px;margin-top:2px;font-family:'Courier New',monospace;">${token}</span>`
+        : `<span class="underscores">${underscores}</span>`;
       return `<span class="blank-wrap" style="pointer-events:none;">
         <span style="display:inline-flex;align-items:center;justify-content:center;min-width:${w}px;min-height:24px;border-bottom:2px solid ${border};color:${color};font-size:13px;text-align:center;">${state.submitted?token:""}</span>
-        <span class="underscores">${underscores}</span>
+        ${correctLabelFull}
       </span>`;
     }
-    const st = state.submitted?(norm(state.inputs[wordIdx]||"")===norm(token)?"correct":"wrong"):(state.focused===wordIdx?"focused":"");
+    const isCorrect = norm(state.inputs[wordIdx]||"")===norm(token);
+    const st = state.submitted?(isCorrect?"correct":"wrong"):(state.focused===wordIdx?"focused":"");
+    const correctLabel = state.submitted&&!isCorrect
+      ? `<span style="font-size:11px;color:#fb923c;letter-spacing:0.5px;margin-top:2px;font-family:'Courier New',monospace;">${token}</span>`
+      : "";
     return `<span class="blank-wrap" onclick="setFocused(${wordIdx})">
       <span class="blank-inp ${st}" style="width:${w}px;">${state.inputs[wordIdx]||""}</span>
-      <span class="underscores">${underscores}</span>
+      ${correctLabel||`<span class="underscores">${underscores}</span>`}
     </span>`;
   }).join("");
 }
