@@ -147,7 +147,7 @@ const state = {
   submitted:false, score:null, playCnt:0,
   history:[], mistakes:[], speaking:false,
   fullInput:"", caps:false, trans:"", translating:false,
-  pdfSents:[], pdfTitle:"", pdfSections:[], pdfSection:0
+  pdfSents:[], pdfTitle:"", pdfSections:[], pdfSection:0, speed:0.9
 };
 
 function getSents() {
@@ -237,14 +237,18 @@ function renderSettings() {
 
 function buildCardHtml(current,sents){
   const lvColor=LC[current.level]||"#7dd3fc";
+  const speeds=[0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.5];
+  const speedLabels=["0.6x","0.7x","0.8x","0.9x","1.0x","1.1x","1.2x","1.5x"];
+  const speedBtns=speeds.map((sp,i)=>`<button onclick="setSpeed(${sp})" style="padding:3px 7px;border-radius:4px;border:1px solid ${Math.abs(state.speed-sp)<0.01?"#7c6fff":"#2a2a3a"};background:${Math.abs(state.speed-sp)<0.01?"#7c6fff22":"transparent"};color:${Math.abs(state.speed-sp)<0.01?"#9d8fff":"#444"};font-family:'Courier New',monospace;font-size:10px;cursor:pointer;">${speedLabels[i]}</button>`).join("");
   let html=`<div class="card">
     <div class="row">
       <span class="badge" style="color:${lvColor};border:1px solid ${lvColor}33;">${(current.level||"PDF").toUpperCase()}</span>
       <span style="color:#252535;font-size:11px;">${state.idx%sents.length+1}/${sents.length}${state.playCnt>0?` · 再生${state.playCnt}回`:""}</span>
     </div>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
       <button class="play-btn${state.speaking?" active":""}" onclick="speak()">${state.speaking?"⏸":"▶"}</button>
-      <span style="color:#2a2a3a;font-size:11px;">${state.playCnt===0?"クリック / Spaceで再生":"もう一度再生できます"}</span>
+      <span style="color:#2a2a3a;font-size:11px;">${state.playCnt===0?"クリック / Spaceで再生":"もう一度再生"}</span>
+      <div style="display:flex;gap:3px;margin-left:auto;flex-wrap:wrap;">${speedBtns}</div>
     </div>`;
   if(state.pMode==="dictation"){
     html+=`<div style="font-size:10px;color:#333;margin-bottom:4px;letter-spacing:.05em;">単語をクリックでその位置から再生</div>`;
@@ -481,7 +485,7 @@ function speak(fromWordIdx){
     }
   }
   const u=new SpeechSynthesisUtterance(text);
-  u.rate=0.9;u.lang="en-US";u.pitch=1;
+  u.rate=state.speed;u.lang="en-US";u.pitch=1;
   const voice=getEnglishVoice();if(voice)u.voice=voice;
   u.onstart=()=>{state.speaking=true;render();};
   u.onend=()=>{state.speaking=false;render();};
@@ -563,7 +567,7 @@ function doSubmit(){
 
 function speakSample(text){
   window.speechSynthesis?.cancel();
-  const u=new SpeechSynthesisUtterance(text);u.rate=0.9;u.lang="en-US";u.pitch=1;
+  const u=new SpeechSynthesisUtterance(text);u.rate=state.speed;u.lang="en-US";u.pitch=1;
   const voice=getEnglishVoice();if(voice)u.voice=voice;
   window.speechSynthesis?.speak(u);
 }
@@ -599,24 +603,81 @@ async function loadPDF(input){
     }
     const buf=await file.arrayBuffer();
     const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
-    let txt="";
-    for(let p=1;p<=Math.min(pdf.numPages,30);p++){
+
+    // Extract all text items with font height info
+    let allItems=[];
+    for(let p=1;p<=Math.min(pdf.numPages,60);p++){
       const page=await pdf.getPage(p);
       const c=await page.getTextContent();
-      txt+=c.items.map(i=>i.str).join(" ")+"\n";
+      for(const item of c.items){
+        if(item.str.trim()) allItems.push({str:item.str.trim(),h:Math.round(item.height||0),y:item.transform[5],pg:p});
+      }
     }
-    // clean up hyphenated line breaks and extra spaces
-    const cleaned = txt.replace(/- /g,"").replace(/\s+/g," ");
-    const sents=(cleaned.match(/[A-Z][^.!?]*[.!?]/g)||[])
-      .map(s=>s.trim())
-      .filter(s=>s.split(" ").length>=6 && s.split(" ").length<=50 && /[a-zA-Z]/.test(s))
-      .slice(0,40)
-      .map(s=>({text:s,level:"PDF"}));
-    if(sents.length===0){alert("文章を抽出できませんでした。テキスト形式のPDFか確認してください。");return;}
-    state.pdfSents=sents;state.pdfTitle=file.name;
+
+    // Find median body font size
+    const hs=allItems.map(i=>i.h).filter(h=>h>0).sort((a,b)=>a-b);
+    const medH=hs[Math.floor(hs.length/2)]||10;
+
+    // Group items into lines by (page, y)
+    const lineMap={};
+    for(const item of allItems){
+      const key=item.pg+"_"+Math.round(item.y);
+      if(!lineMap[key]) lineMap[key]={str:"",maxH:0,y:item.y,pg:item.pg};
+      lineMap[key].str+=" "+item.str;
+      lineMap[key].maxH=Math.max(lineMap[key].maxH,item.h);
+    }
+    // Sort: page asc, y desc (top of page first)
+    const lines=Object.values(lineMap).sort((a,b)=>a.pg!==b.pg?a.pg-b.pg:b.y-a.y);
+
+    // Heading detection
+    const secKeywords=/^(Abstract|Introduction|Related Work|Background|Motivation|Methods?|Methodology|Approach|Experiments?|Evaluation|Results?|Discussion|Conclusions?|Acknowledgments?|References?|Appendix)$/i;
+    const numberedTop=/^(\d+)\s+([A-Z][a-zA-Z ]{2,50})$/; // "1 Introduction"
+
+    const sections=[];
+    let cur=null;
+    for(const line of lines){
+      const t=line.str.trim();
+      if(!t||t.length<2) continue;
+      const isLarge=line.maxH>=medH*1.25;
+      const kw=t.replace(/^\d+\.?\s*/,"").trim();
+      const isKeyword=secKeywords.test(kw);
+      const isNumbered=numberedTop.test(t);
+      if((isLarge||isKeyword||isNumbered)&&t.length<80){
+        if(cur&&cur.raw.length>0) sections.push(cur);
+        const title=t.replace(/^(\d+)\s+/,"$1 "); // normalize
+        cur={title,raw:[]};
+      } else {
+        if(!cur) cur={title:"Full Text",raw:[]};
+        cur.raw.push(t);
+      }
+    }
+    if(cur&&cur.raw.length>0) sections.push(cur);
+
+    function extractSents(rawLines){
+      const joined=rawLines.join(" ").replace(/-\s+/g,"").replace(/\s+/g," ");
+      return (joined.match(/[A-Z][^.!?]{15,300}[.!?]/g)||[])
+        .map(s=>s.trim())
+        .filter(s=>{const w=s.split(/\s+/);return w.length>=6&&w.length<=60&&/[a-zA-Z]{3}/.test(s)&&!/^\d/.test(s);})
+        .slice(0,30).map(s=>({text:s,level:"PDF"}));
+    }
+
+    let validSections=sections.map(sec=>({title:sec.title,sents:extractSents(sec.raw)})).filter(sec=>sec.sents.length>=1);
+    if(validSections.length===0){
+      const sents=extractSents(allItems.map(i=>i.str));
+      if(sents.length===0){alert("文章を抽出できませんでした。テキスト形式のPDFをお試しください。");return;}
+      validSections=[{title:"Full Text",sents}];
+    }
+
+    console.log("Sections:", validSections.map(s=>s.title+"("+s.sents.length+"文)").join(", "));
+    state.pdfSections=validSections;
+    state.pdfSection=0;
+    state.pdfSents=validSections[0].sents;
+    state.pdfTitle=file.name;
     state.filter="PDF";state.idx=0;doReset();
-    alert(sents.length+"文を読み込みました: "+file.name);
-  }catch(e){alert("PDFの読み込みに失敗しました: "+e.message);}
+  }catch(e){
+    console.error(e);
+    alert("PDFの読み込みに失敗しました: "+e.message);
+  }
 }
 
 // ── Physical keyboard ──
@@ -633,6 +694,9 @@ window.addEventListener("keydown",e=>{
 
 // voices load asynchronously in some browsers
 window.speechSynthesis.onvoiceschanged=()=>{};
+
+function setSpeed(sp){state.speed=sp;window.speechSynthesis?.cancel();setSpeaking(false);render();}
+function setSpeaking(v){state.speaking=v;}
 
 // ── Init ──
 resetFull();
